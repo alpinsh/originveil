@@ -1,5 +1,5 @@
 name: originveil
-version: 0.1.0
+version: 0.1.1
 manifest_version: 2
 api_version: 1
 description: Audit how a Cloudflare-proxied origin can be found or reached directly. Results reach the model redacted.

@@ -1,10 +1,9 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
+# No [build-system] table on purpose: with no dependencies and no build system,
+# Hermes treats this file as "declares nothing" and skips re-preparing its
+# shared Python environment on install. pip falls back to setuptools.
 [project]
 name = "originveil"
-version = "0.1.0"
+version = "0.1.1"
 description = "Inside-out audit of an origin server behind Cloudflare: DNS leaks, direct reachability, AOP, firewall."
 readme = "README.md"
 requires-python = ">=3.11"
