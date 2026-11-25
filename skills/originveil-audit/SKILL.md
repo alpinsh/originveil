@@ -68,9 +68,10 @@ the IP now sits in the chat history.
    not own.
 4. Do not change firewall, nginx or DNS yourself. Explain the fix and give the exact
    config or command; the user applies it.
-5. Firewall and nginx/AOP checks describe the machine they run on. Only suggest
-   `sudo originveil install-timer` for the origin server itself, never for the host the
-   agent runs on unless that host is the origin.
+5. Firewall and nginx/AOP checks describe the machine they run on. They need the
+   root timer installed on the origin server itself (see the README section "Root
+   timer"); point the user there. Never suggest installing it on the host the agent
+   runs on unless that host is the origin, and never run it yourself.
 6. `no-candidates`, `origin-not-found` and `candidate-unreachable` are not proof the
    origin is hidden. Historical DNS and scan databases are not checked, and a
    firewalled origin looks the same as a non-origin. Say this every time.
