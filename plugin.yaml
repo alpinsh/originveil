@@ -1,0 +1,33 @@
+name: originveil
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: Audit how a Cloudflare-proxied origin can be found or reached directly. Results reach the model redacted.
+author: alpinsh
+license: MIT
+homepage: https://github.com/alpinsh/originveil
+tags: [security, cloudflare, audit, blue-team]
+provides_tools:
+  - originveil_audit
+  - originveil_last_report
+  - originveil_add_domain
+  - originveil_verify_domain
+  - originveil_list_domains
+  - originveil_remove_domain
+config_schema:
+  config_path:
+    type: str
+    default: ""
+    description: "originveil config file. Empty: /etc/originveil/config.toml, then ~/.config/originveil/config.toml"
+  vantage:
+    type: str
+    default: "local"
+    description: "Where direct probes run when there is no config file: local, or ssh://user@host:port"
+  allow_chat_origin_ip:
+    type: bool
+    default: false
+    description: "Let the agent pass an origin IP given in chat. Off by default: a model-supplied IP is not an authorised target. When on, the IP must present a certificate for an audited domain before it is probed."
+  report_dir:
+    type: str
+    default: "/var/lib/originveil"
+    description: "Where the root timer writes report.redacted.json"

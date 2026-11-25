@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "originveil"
+version = "0.1.0"
+description = "Inside-out audit of an origin server behind Cloudflare: DNS leaks, direct reachability, AOP, firewall."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = []
+keywords = ["cloudflare", "origin", "waf-bypass", "security", "audit", "blue-team"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+
+[project.scripts]
+originveil = "originveil.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/alpinsh/originveil"
+
+[tool.setuptools]
+packages = ["originveil", "originveil.checks"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+testpaths = ["tests"]
+pythonpath = [".", "tests"]

@@ -1,0 +1,28 @@
+# Copy to /etc/originveil/config.toml (root timer) or ~/.config/originveil/config.toml
+# This file holds your origin IP: keep it out of git and chmod 640/600 it.
+
+domains = ["example.com", "example.org"]
+
+# Empty: discover the origin from public records and confirm it from the vantage.
+# ["local"]: use this machine's own IPs (when running on the origin).
+# Or list the IPs yourself, e.g. ["192.0.2.10"].
+origin_ips = []
+
+[cloudflare]
+# Token with Zone:Read and DNS:Read only. Read from this env var, or from token_file.
+token_env = "CF_API_TOKEN"
+# token_file = "/etc/originveil/cf_token"   # chmod 600
+
+[probe]
+# A machine you control, NOT the origin. "local" runs the probe from this machine. The probe script is piped over SSH and
+# needs only python3 there. Unset = the direct reachability test is skipped.
+# vantage = "ssh://audit@203.0.113.5:22"
+timeout = 6
+
+[paths]
+nginx_conf = "/etc/nginx/nginx.conf"
+apache_dir = "/etc/apache2"
+
+[dns]
+# Extra subdomain labels to try on top of the built-in list.
+extra_labels = []

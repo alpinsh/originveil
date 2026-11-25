@@ -1,0 +1,27 @@
+# secrets and local config
+.env
+.env.*
+*.env
+config.toml
+!examples/config.toml
+token
+*.token
+
+# audit output (contains origin IPs)
+reports/
+report*.json
+*.report.json
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# editors / tooling
+.idea/
+.vscode/
