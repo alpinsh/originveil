@@ -3,7 +3,7 @@
 # shared Python environment on install. pip falls back to setuptools.
 [project]
 name = "originveil"
-version = "0.1.1"
+version = "0.1.2"
 description = "Inside-out audit of an origin server behind Cloudflare: DNS leaks, direct reachability, AOP, firewall."
 readme = "README.md"
 requires-python = ">=3.11"

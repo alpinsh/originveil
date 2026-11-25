@@ -26,6 +26,10 @@ from pathlib import Path
 
 PLUGIN_DIR = Path(__file__).resolve().parent
 DEFAULT_CONFIGS = (Path("/etc/originveil/config.toml"), Path.home() / ".config" / "originveil" / "config.toml")
+SECRET_ENV = "ORIGINVEIL_CF_TOKEN"  # declared as a `secret` in plugin.yaml config_schema
+# What the CLI child process needs. Everything else in Hermes' environment, including
+# other plugins' and providers' keys, stays out of it.
+CHILD_ENV_KEEP = ("PATH", "HOME", "LANG", "LC_ALL", "LC_CTYPE", "TZ", "TMPDIR", "SSH_AUTH_SOCK")
 CHALLENGE_LABEL = "_originveil-challenge"
 CHALLENGE_PREFIX = "originveil-verify="
 PENDING_TTL = 48 * 3600
@@ -131,6 +135,42 @@ def _allowed() -> list[str]:
     return list(dict.fromkeys(_config_domains(_config_path()) + _verified()))
 
 
+def _cf_token() -> str | None:
+    """The optional Cloudflare token, read through Hermes' secret scope so a
+    multi-profile gateway never hands one profile another profile's key."""
+    try:
+        from agent.secret_scope import get_secret
+    except ImportError:  # running outside Hermes (tests, old builds)
+        value = os.environ.get(SECRET_ENV)
+    else:
+        try:
+            value = get_secret(SECRET_ENV)
+        except Exception:  # no scope while multiplexing: fail closed, never fall back
+            return None
+    value = (value or "").strip()
+    return value or None
+
+
+def _token_env(path: Path | None) -> str:
+    """The variable the CLI reads the token from (config `cloudflare.token_env`)."""
+    name = "CF_API_TOKEN"
+    if path and path.is_file():
+        try:
+            with path.open("rb") as fh:
+                name = str(tomllib.load(fh).get("cloudflare", {}).get("token_env") or name)
+        except (OSError, tomllib.TOMLDecodeError):
+            pass
+    return name if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) else "CF_API_TOKEN"
+
+
+def _child_env(token: str | None, config: Path | None = None) -> dict:
+    env = {k: os.environ[k] for k in CHILD_ENV_KEEP if k in os.environ}
+    env["PYTHONPATH"] = str(PLUGIN_DIR)
+    if token:
+        env[_token_env(config)] = token
+    return env
+
+
 def _scrub(text: str) -> str:
     return _IP_LITERAL.sub("<ip>", text)
 
@@ -195,7 +235,7 @@ def _txt_records(name: str, timeout: float = 8.0) -> list[str]:
 
 def _cloudflare_controls(domain: str) -> bool:
     """True if the configured Cloudflare token can read this domain's zone."""
-    token = os.environ.get("CF_API_TOKEN", "").strip()
+    token = _cf_token()
     if not token:
         return False
     labels = domain.split(".")
@@ -338,8 +378,8 @@ def audit(args: dict, **kwargs) -> str:
         if args.get("include_wordpress") is False:
             cli += ["--skip", "wordpress"]
 
-        env = {**os.environ, "PYTHONPATH": str(PLUGIN_DIR)}
-        res = subprocess.run(cli, capture_output=True, text=True, timeout=600, cwd=PLUGIN_DIR, env=env)
+        res = subprocess.run(cli, capture_output=True, text=True, timeout=600, cwd=PLUGIN_DIR,
+                             env=_child_env(_cf_token(), cfg))
         if res.returncode not in (0, 1):
             return _err(f"originveil exited with {res.returncode}")
         report = json.loads(_scrub(res.stdout))

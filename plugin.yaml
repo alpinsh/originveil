@@ -1,7 +1,8 @@
 name: originveil
-version: 0.1.1
+version: 0.1.2
 manifest_version: 2
 api_version: 1
+requires_hermes: ">=0.23.4"
 description: Audit how a Cloudflare-proxied origin can be found or reached directly. Results reach the model redacted.
 author: alpinsh
 license: MIT
@@ -23,6 +24,11 @@ config_schema:
     type: str
     default: "local"
     description: "Where direct probes run when there is no config file: local, or ssh://user@host:port"
+  cloudflare_token:
+    type: secret
+    env: ORIGINVEIL_CF_TOKEN
+    label: Cloudflare API token
+    description: "Optional. Scope it to Zone:Read and DNS:Read only. Enables the Cloudflare DNS check and lets domains be verified without a TXT record."
   allow_chat_origin_ip:
     type: bool
     default: false

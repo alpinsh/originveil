@@ -145,6 +145,15 @@ Tools:
 A bundled skill (`originveil:originveil-audit`) tells the agent how to read the
 results and what not to do.
 
+Plugin settings (in Hermes' plugin settings screen):
+`config_path`, `vantage`, `report_dir`, `allow_chat_origin_ip` (off by default) and
+an optional `cloudflare_token`. The token is stored as a secret in Hermes' `.env` as
+`ORIGINVEIL_CF_TOKEN` and read through Hermes' secret scope, so a general
+`CF_API_TOKEN` you may have for other tools is not picked up. Give it Zone:Read and
+DNS:Read only. The audit runs the CLI with a minimal environment (`PATH`, `HOME`,
+locale, `SSH_AUTH_SOCK` and this token); other keys in Hermes' environment are not
+passed to it.
+
 ### Adding domains without touching a config file
 
 Ask the agent to add your domain. It returns a TXT record, for example:
@@ -154,8 +163,8 @@ _originveil-challenge.example.com  TXT  "originveil-verify=3f0c..."
 ```
 
 Add it in your DNS (Cloudflare: DNS > Records), tell the agent, and it checks the
-record and adds the domain. You can delete the record afterwards. If `CF_API_TOKEN`
-can read the zone, that counts as proof and no record is needed. Codes expire after
+record and adds the domain. You can delete the record afterwards. If the plugin's
+Cloudflare token can read the zone, that counts as proof and no record is needed. Codes expire after
 48 hours. Verified domains are stored in the plugin's own Hermes state, not in a file
 you have to edit. `/etc/originveil/config.toml` still works for admins who prefer it.
 
@@ -202,6 +211,8 @@ toolsets if that matters to you.
 - Cloudflare API calls (`/ips`, and zone/DNS reads if a token is set)
 - DNS lookups for your own names
 - HTTPS requests to your own domains through Cloudflare (`/` and `/xmlrpc.php`)
+- Direct TCP connections on ports 80 and 443 to the public IPs your own records point
+  at (discovery), plus one TLS handshake per candidate
 - SSH to your vantage host, if configured
 - One TXT lookup when verifying a domain (over Cloudflare DNS-over-HTTPS if `dig` is
   not installed)
@@ -212,6 +223,12 @@ system's DNS resolver. MX lookups can resolve your mail provider's hostnames. Th
 WordPress check only calls `system.listMethods`; it never calls `pingback.ping`, so no
 third party is contacted on its behalf (the request still shows up in your site's
 access log).
+
+What the plugin touches on the Hermes host: it runs the originveil CLI, which calls
+`dig` and, if a vantage is set, `ssh`; it reads the config file and `report.redacted.json` in `report_dir`; it keeps
+verified domains and pending TXT codes in its own plugin state. It installs nothing,
+registers no hooks and never writes outside its state. The root timer is something
+you install yourself with the CLI on the origin server.
 
 ## Security design
 
