@@ -209,3 +209,61 @@ def test_last_report_freshness(plugin, tmp_path):
     plugin.register(ctx)
     fr = call(ctx, "originveil_last_report")["report"]["freshness"]
     assert fr["stale"] is True and fr["covers_allowed_domains"] == "1 of 2"
+
+
+def test_child_env_is_minimal(plugin, tmp_path, monkeypatch):
+    cfg = tmp_path / "c.toml"
+    cfg.write_text('domains = ["example.com"]\n')
+    ctx = Ctx({"config_path": str(cfg), "report_dir": str(tmp_path)})
+    plugin.register(ctx)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-other-plugin")
+    monkeypatch.setenv("CF_API_TOKEN", "broad-token")
+    monkeypatch.setenv("ORIGINVEIL_CF_TOKEN", "scoped-token")
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["env"] = kw["env"]
+        return subprocess.CompletedProcess(cmd, 0, stdout="{}", stderr="")
+
+    monkeypatch.setattr(plugin.tools.subprocess, "run", fake_run)
+    ctx.tools["originveil_audit"]({})
+    env = seen["env"]
+    assert "OPENAI_API_KEY" not in env
+    assert env["CF_API_TOKEN"] == "scoped-token"  # ours, not the broader one from Hermes' env
+    assert "PATH" in env and "PYTHONPATH" in env
+
+
+def test_child_env_without_token(plugin, tmp_path, monkeypatch):
+    monkeypatch.delenv("ORIGINVEIL_CF_TOKEN", raising=False)
+    monkeypatch.setenv("CF_API_TOKEN", "broad-token")
+    plugin.register(Ctx({"config_path": "", "report_dir": str(tmp_path)}))
+    assert plugin.tools._cf_token() is None
+    assert "CF_API_TOKEN" not in plugin.tools._child_env(None)
+
+
+def test_child_env_uses_config_token_env(plugin, tmp_path):
+    cfg = tmp_path / "c.toml"
+    cfg.write_text('domains = ["example.com"]\n[cloudflare]\ntoken_env = "MY_CF"\n')
+    assert plugin.tools._child_env("t", cfg)["MY_CF"] == "t"
+    bad = tmp_path / "bad.toml"
+    bad.write_text('[cloudflare]\ntoken_env = "PATH=/x"\n')
+    env = plugin.tools._child_env("t", bad)
+    assert env["CF_API_TOKEN"] == "t" and env.get("PATH") != "t"
+
+
+def test_token_read_through_secret_scope(plugin, tmp_path, monkeypatch):
+    import types
+    agent = types.ModuleType("agent")
+    scope = types.ModuleType("agent.secret_scope")
+    scope.get_secret = lambda name, default=None: "from-scope" if name == "ORIGINVEIL_CF_TOKEN" else default
+    agent.secret_scope = scope
+    monkeypatch.setitem(sys.modules, "agent", agent)
+    monkeypatch.setitem(sys.modules, "agent.secret_scope", scope)
+    monkeypatch.setenv("ORIGINVEIL_CF_TOKEN", "from-env")
+    assert plugin.tools._cf_token() == "from-scope"
+
+    def unscoped(name, default=None):
+        raise RuntimeError("UnscopedSecretError")
+
+    scope.get_secret = unscoped
+    assert plugin.tools._cf_token() is None  # fails closed, no env fallback
