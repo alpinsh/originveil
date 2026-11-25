@@ -128,6 +128,13 @@ hermes plugins install alpinsh/originveil
 hermes plugins enable originveil
 ```
 
+originveil is not in the Hermes plugin catalog yet, so Hermes scans it at install
+time and may block it as a community source. The findings come from what the tool
+has to do: `subprocess` calls for `dig`, `ssh` and `systemctl` (always argument
+lists, never a shell), and `sudo`, `pip install` and SSH examples in this README and
+the tests. Read the code first; if you are satisfied, answer `y` at the prompt or
+install with `--force`.
+
 Tools:
 
 - `originveil_audit`: discovery, DNS, reach and WordPress checks, plus the last timer report

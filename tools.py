@@ -352,7 +352,7 @@ def audit(args: dict, **kwargs) -> str:
             out["last_local_report"] = last
         else:
             out["note"] = ("no local timer report. Firewall and nginx/AOP checks run on the origin server itself "
-                           "(`sudo originveil install-timer` there), not on the host the agent runs on")
+                           "(the root timer described in the README), not on the host the agent runs on")
         return json.dumps(out)
     except subprocess.TimeoutExpired:
         return _err("audit timed out")
